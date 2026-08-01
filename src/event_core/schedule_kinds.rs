@@ -33,7 +33,7 @@ pub struct Repeat {
     pub(super) interval: Interval,
     pub(super) duration: Option<Interval>,
     #[serde(rename = "offset-count")]
-    pub(super) offset_count: Option<NonZeroUsize>,
+    pub(super) offset_count: Option<usize>,
     #[serde(default)]
     pub(super) exceptions: Vec<Exception>,
 }

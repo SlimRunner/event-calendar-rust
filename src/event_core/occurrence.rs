@@ -93,7 +93,6 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(item) = self.date_queue.pop_back() {
-            // return Some(OccurrenceItem { date: date, index: self.index as usize })
             return Some(item);
         }
         let can_continue = match self.remaining {
@@ -141,7 +140,7 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
                 self.index += 1;
                 self.date_queue.push_front(OccurrenceItem {
                     date: self.current,
-                    index: self.index as usize,
+                    index: (self.index + self.repeat.offset_count.unwrap_or(0)),
                 });
 
                 // prevent enqueuing more events than max
