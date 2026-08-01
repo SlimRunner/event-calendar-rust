@@ -9,13 +9,27 @@ pub enum Occurrences<'a> {
     Repeating(RepeatOccurrences<'a>),
 }
 
+pub struct OccurrenceItem {
+    pub(super) date: Rfc3339Date,
+    pub(super) index: usize,
+}
+
 impl<'a> Iterator for Occurrences<'a> {
-    type Item = Rfc3339Date;
+    type Item = OccurrenceItem;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Occurrences::Manual(iter) => iter.next().copied(),
-            Occurrences::Repeating(iter) => iter.next(),
+            Occurrences::Manual(iter) => match iter.next().copied() {
+                Some(date) => Some(OccurrenceItem {
+                    date: date,
+                    index: 0,
+                }),
+                None => None,
+            },
+            Occurrences::Repeating(iter) => match iter.next() {
+                Some(item) => Some(item),
+                None => None,
+            },
         }
     }
 }
@@ -24,11 +38,11 @@ pub struct RepeatOccurrences<'a> {
     repeat: &'a Repeat,
 
     current: Rfc3339Date,
-    index: u32,
-    remaining: Option<u32>,
+    index: usize,
+    remaining: Option<usize>,
 
     exceptions: Peekable<std::slice::Iter<'a, Exception>>,
-    date_queue: VecDeque<Rfc3339Date>,
+    date_queue: VecDeque<OccurrenceItem>,
 }
 
 impl<'a> RepeatOccurrences<'a> {
@@ -44,8 +58,8 @@ impl<'a> RepeatOccurrences<'a> {
     }
 }
 
-fn duration_from_interval(interval: &Interval) -> Duration {
-    let count = i64::from(interval.length.get());
+pub(super) fn duration_from_interval(interval: &Interval) -> Duration {
+    let count = interval.length.get() as i64;
     match interval.unit {
         TimeUnit::Hour => Duration::new(count * 3600, 0),
         TimeUnit::Day => Duration::new(count * 3600 * 24, 0),
@@ -59,7 +73,7 @@ fn duration_from_interval(interval: &Interval) -> Duration {
     }
 }
 
-fn duration_from_count(count: i32, unit: &TimeUnit) -> Duration {
+pub(super) fn duration_from_count(count: isize, unit: &TimeUnit) -> Duration {
     let count: i64 = count as i64;
     match unit {
         TimeUnit::Hour => Duration::new(count * 3600, 0),
@@ -75,24 +89,30 @@ fn duration_from_count(count: i32, unit: &TimeUnit) -> Duration {
 }
 
 impl<'a> Iterator for RepeatOccurrences<'a> {
-    type Item = Rfc3339Date;
+    type Item = OccurrenceItem;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(date) = self.date_queue.pop_back() {
-            return Some(date);
+        if let Some(item) = self.date_queue.pop_back() {
+            // return Some(OccurrenceItem { date: date, index: self.index as usize })
+            return Some(item);
         }
         let can_continue = match self.remaining {
             Some(t) => self.index < t,
             None => true,
         };
+        // println!("{}", self.index);
         if can_continue {
-            let mut items: u32 = 1;
+            let mut items: usize = 1;
             let date_interval: Duration = duration_from_interval(&self.repeat.interval);
             let mut offset_interval = Duration::nanoseconds(0);
+            let mut skip_interval = Duration::nanoseconds(0);
 
             while let Some(exception) = self.exceptions.peek() {
-                if exception.index <= self.index {
+                if exception.index <= (self.index + 1) {
                     let exception = self.exceptions.next().unwrap();
+
+                    // BUGBUG: if you mix skips with other exceptions
+                    // your warranty is void
 
                     match &exception.kind {
                         ExceptionKind::Shift { shift } => {
@@ -102,9 +122,9 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
                             if !*with_replacement {
                                 self.index += 1;
                             }
-                            offset_interval = duration_from_interval(&self.repeat.interval);
+                            skip_interval += duration_from_interval(&self.repeat.interval);
+                            offset_interval = skip_interval;
                             items = 1;
-                            break;
                         }
                         ExceptionKind::Multiplicity { count } => {
                             items = count.get();
@@ -114,14 +134,27 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
                     break;
                 }
             }
+
             self.current.0 += offset_interval;
             for _ in 0..items {
+                // pre-added to naturally make index 1-based
                 self.index += 1;
-                self.date_queue.push_front(self.current);
+                self.date_queue.push_front(OccurrenceItem {
+                    date: self.current,
+                    index: self.index as usize,
+                });
+
+                // prevent enqueuing more events than max
+                if let Some(rem) = self.remaining
+                    && self.index >= rem
+                {
+                    break;
+                }
             }
-            self.current.0 += date_interval - offset_interval;
-            if let Some(date) = self.date_queue.pop_back() {
-                Some(date)
+            self.current.0 += date_interval - offset_interval + skip_interval;
+
+            if let Some(item) = self.date_queue.pop_back() {
+                Some(item)
             } else {
                 // 100% should never execute
                 None

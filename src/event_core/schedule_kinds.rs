@@ -1,5 +1,5 @@
 use core::fmt;
-use std::num::NonZeroU32;
+use std::num::{NonZeroUsize};
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -7,7 +7,7 @@ use time::serde::rfc3339;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct Exception {
-    pub(super) index: u32,
+    pub(super) index: usize,
 
     #[serde(flatten)]
     pub(super) kind: ExceptionKind,
@@ -20,7 +20,7 @@ pub(super) enum ExceptionKind {
     Skip { with_replacement: bool },
 
     #[serde(rename = "multiplicity")]
-    Multiplicity { count: NonZeroU32 },
+    Multiplicity { count: NonZeroUsize },
 
     #[serde(rename = "shift")]
     Shift { shift: Shift },
@@ -29,11 +29,11 @@ pub(super) enum ExceptionKind {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Repeat {
     pub(super) starts: Rfc3339Date,
-    pub(super) times: Option<u32>,
+    pub(super) times: Option<usize>,
     pub(super) interval: Interval,
-    duration: Option<f64>,
+    pub(super) duration: Option<Interval>,
     #[serde(rename = "offset-count")]
-    offset_count: Option<NonZeroU32>,
+    pub(super) offset_count: Option<NonZeroUsize>,
     #[serde(default)]
     pub(super) exceptions: Vec<Exception>,
 }
@@ -41,13 +41,13 @@ pub struct Repeat {
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct Shift {
     pub(super) unit: TimeUnit,
-    pub(super) count: i32,
+    pub(super) count: isize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct Interval {
     pub(super) unit: TimeUnit,
-    pub(super) length: NonZeroU32,
+    pub(super) length: NonZeroUsize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

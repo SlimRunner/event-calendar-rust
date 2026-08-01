@@ -2,10 +2,13 @@ use std::fs::{self};
 
 mod event_core;
 
-use event_core::parser::{EventsFile, Schedule};
+use event_core::parser::EventsFile;
+use event_core::query::EventDatabase;
+use time::{Duration, OffsetDateTime};
 
 fn main() {
-    let path = "E:/dev/event-calendar/data/events.yaml";
+    // TEMP PATH
+    let path = "E:/dev/event-calendar-rust/data.yml";
     let yaml_str = match fs::read_to_string(path) {
         Ok(txt) => txt,
         Err(e) => {
@@ -19,27 +22,37 @@ fn main() {
             eprintln!("Failed to parse {}: {:?}", path, e);
             std::process::exit(1);
         }
-    }
-    .events;
+    };
 
-    for ev in events {
-        match &ev.schedule {
-            Schedule::Manual { date_list: _ } => {
-                println!("[M]: {}", ev.title);
-            }
-            Schedule::Repeating { repeats: _ } => {
-                println!("[R]: {}", ev.title);
-            }
+    let db = EventDatabase::new(&events);
+    let today: OffsetDateTime = OffsetDateTime::now_utc();
+
+    // db.debug();
+    for item in db.upcoming(today) {
+        let text = format!("{}: {}", item.event.title, item.start_date);
+        println!("{}", text);
+    }
+    let week_window = Duration::new(3600 * 24 * 7, 0);
+
+    let mut cal = db.calendar(today - week_window, today + week_window);
+    cal.sort_by(|a, b| a.from.cmp(&b.from));
+    let mut today_flag = true;
+
+    for item in cal {
+        let text = format!(
+            "[{}/{}] {}: {}",
+            item.index,
+            item.event
+                .schedule
+                .get_count()
+                .map_or(String::from("?"), |n| format!("{}", n)),
+            item.event.title,
+            item.from.weekday()
+        );
+        if today_flag && today < item.from {
+            today_flag = false;
+            println!("TODAY");
         }
-        if ev.schedule.is_indefinite() {
-            for t in ev.schedule.occurrences().take(10) {
-                println!("{}", t);
-            }
-            println!("...");
-        } else {
-            for t in ev.schedule.occurrences() {
-                println!("{}", t);
-            }
-        }
+        println!("{}", text);
     }
 }

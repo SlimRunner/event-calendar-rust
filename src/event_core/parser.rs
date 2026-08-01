@@ -40,4 +40,11 @@ impl Schedule {
             Schedule::Repeating { repeats } => repeats.times.is_none(),
         }
     }
+
+    pub fn get_count(&self) -> Option<usize> {
+        match self {
+            Schedule::Manual { date_list } => Some(date_list.len()),
+            Schedule::Repeating { repeats } => repeats.times,
+        }
+    }
 }
