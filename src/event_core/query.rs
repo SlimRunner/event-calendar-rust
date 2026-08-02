@@ -1,3 +1,7 @@
+use std::{
+    fs::{self},
+    path::Path,
+};
 use time::OffsetDateTime;
 
 use crate::event_core::{
@@ -5,7 +9,7 @@ use crate::event_core::{
     parser::{Event, EventsFile, Schedule},
 };
 
-pub struct UpcomingEvent<'a> {
+pub struct LeanCalendarEvent<'a> {
     pub event: &'a Event,
     pub start_date: OffsetDateTime,
 }
@@ -17,35 +21,38 @@ pub struct CalendarEvent<'a> {
     pub to: Option<OffsetDateTime>,
 }
 
-pub struct EventDatabase<'a> {
-    data: &'a EventsFile,
+pub struct EventDatabase {
+    data: EventsFile,
 }
 
-impl<'a> EventDatabase<'a> {
-    pub fn new(data: &'a EventsFile) -> Self {
-        Self { data }
+#[derive(Debug)]
+pub enum DatabaseError {
+    #[allow(dead_code)]
+    Io(std::io::Error),
+    #[allow(dead_code)]
+    Parse(yaml_serde::Error),
+}
+
+impl From<std::io::Error> for DatabaseError {
+    fn from(err: std::io::Error) -> Self {
+        DatabaseError::Io(err)
+    }
+}
+
+impl From<yaml_serde::Error> for DatabaseError {
+    fn from(err: yaml_serde::Error) -> Self {
+        DatabaseError::Parse(err)
+    }
+}
+
+impl EventDatabase {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, DatabaseError> {
+        let yaml_str = fs::read_to_string(path)?;
+        let data = yaml_serde::from_str::<EventsFile>(&yaml_str)?;
+        Ok(Self { data })
     }
 
-    pub fn upcoming(&self, now: OffsetDateTime) -> Vec<UpcomingEvent<'a>> {
-        let mut output: Vec<UpcomingEvent> = Vec::new();
-        for ev in &self.data.events {
-            match ev.schedule.occurrences().next() {
-                Some(first) => {
-                    if first.date.0 > now {
-                        output.push(UpcomingEvent {
-                            event: ev,
-                            start_date: first.date.0,
-                        });
-                    }
-                }
-                None => {}
-            }
-        }
-
-        output
-    }
-
-    pub fn calendar(&self, from: OffsetDateTime, to: OffsetDateTime) -> Vec<CalendarEvent<'a>> {
+    pub fn get_calendar(&self, from: OffsetDateTime, to: OffsetDateTime) -> Vec<CalendarEvent<'_>> {
         let mut output: Vec<CalendarEvent> = Vec::new();
         for entry in &self.data.events {
             for event in entry.schedule.occurrences() {
@@ -76,6 +83,24 @@ impl<'a> EventDatabase<'a> {
         output
     }
 
+    pub fn list_all(&self) -> Vec<LeanCalendarEvent<'_>> {
+        let mut output: Vec<LeanCalendarEvent> = Vec::new();
+        for ev in &self.data.events {
+            match ev.schedule.occurrences().next() {
+                Some(first) => {
+                    output.push(LeanCalendarEvent {
+                        event: ev,
+                        start_date: first.date.0,
+                    });
+                }
+                None => {}
+            }
+        }
+
+        output
+    }
+
+    #[allow(dead_code)]
     pub fn debug(&self) {
         for ev in &self.data.events {
             match &ev.schedule {

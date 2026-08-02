@@ -1,5 +1,5 @@
 use core::fmt;
-use std::num::{NonZeroUsize};
+use std::num::NonZeroUsize;
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
