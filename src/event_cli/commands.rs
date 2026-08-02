@@ -6,13 +6,56 @@ use time::{Duration, OffsetDateTime};
 
 use crate::event_core::query::EventDatabase;
 
+fn format_signed_duration(time: Duration) -> String {
+    let total_seconds = time.whole_seconds().abs();
+    let days = total_seconds / (3600 * 24);
+    let hours = (total_seconds % (3600 * 24)) / 3600;
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+
+    match days {
+        0 => format!("{}:{}:{}", hours, minutes, seconds),
+        1 => format!("{} day, {}:{}:{}", days, hours, minutes, seconds),
+        _ => format!("{} days, {}:{}:{}", days, hours, minutes, seconds),
+    }
+}
+
 pub fn list_upcoming(db: &EventDatabase) {
+    let fmt_date = format_description!("[year]-[month]-[day] [weekday repr:short]");
+
+    let offset = match UtcOffset::current_local_offset() {
+        Ok(offset) => offset,
+        Err(_) => UtcOffset::UTC,
+    };
+
     let today: OffsetDateTime = OffsetDateTime::now_utc();
+    let mut table = Table::new();
+    table.set_header(Row::from(vec!["Title", "Countdown", "Start", "Total"]));
 
     for item in db.list_all().iter().filter(|ev| ev.start_date > today) {
-        let text = format!("{}: {}", item.event.title, item.start_date);
-        println!("{}", text);
+        let diff = format_signed_duration(item.start_date - today);
+        let count = item.event.schedule.get_count();
+        let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
+
+        table.add_row(vec![
+            truncate(&item.event.title, 30),
+            diff,
+            apply_date_format(item.start_date.to_offset(offset), fmt_date),
+            count_str,
+        ]);
+        // println!("{}", text);
     }
+
+    table.load_preset(comfy_table::presets::UTF8_FULL);
+    table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
+    for i in vec![1, 2, 3] {
+        table
+            .column_mut(i)
+            .unwrap()
+            .set_cell_alignment(CellAlignment::Right);
+    }
+
+    println!("{}", table.to_string());
 }
 
 fn apply_date_format<T: Formattable>(date: OffsetDateTime, format: T) -> String {
