@@ -8,7 +8,7 @@ use time::{Duration, OffsetDateTime};
 
 fn main() {
     // TEMP PATH
-    let path = "E:/dev/event-calendar-rust/data.yml";
+    let path = "E:/dev/personal-schedules/entertainment/seasonal-anime.yaml";
     let yaml_str = match fs::read_to_string(path) {
         Ok(txt) => txt,
         Err(e) => {
