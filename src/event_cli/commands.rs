@@ -36,17 +36,11 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
 
     let mut cal = db.get_calendar(today - week_window, today + week_window);
     cal.sort_by(|a, b| a.from.cmp(&b.from));
-    let mut today_flag = true;
 
     let mut table = Table::new();
     table.set_header(Row::from(vec!["Day", "Date", "Time", "i", "N", "Title"]));
 
-    for item in &cal {
-        if today_flag && today < item.from {
-            today_flag = false;
-            println!("TODAY");
-        }
-
+    for item in cal {
         let count = item.event.schedule.get_count();
 
         // the order of these checks matter
