@@ -1,11 +1,11 @@
-use std::{collections::VecDeque, iter::Peekable};
+use std::{collections::VecDeque, iter::{Enumerate, Peekable}};
 
 use time::Duration;
 
 use super::schedule_kinds::{Exception, ExceptionKind, Interval, Repeat, Rfc3339Date, TimeUnit};
 
 pub enum Occurrences<'a> {
-    Manual(std::slice::Iter<'a, Rfc3339Date>),
+    Manual(Enumerate<std::slice::Iter<'a, Rfc3339Date>>),
     Repeating(RepeatOccurrences<'a>),
 }
 
@@ -19,10 +19,10 @@ impl<'a> Iterator for Occurrences<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Occurrences::Manual(iter) => match iter.next().copied() {
-                Some(date) => Some(OccurrenceItem {
-                    date: date,
-                    index: 0,
+            Occurrences::Manual(iter) => match iter.next() {
+                Some((i, date)) => Some(OccurrenceItem {
+                    date: *date,
+                    index: i + 1,
                 }),
                 None => None,
             },

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.6.5", features = ["derive", "wrap_help"] }
+comfy-table = "7.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
-time = { version = "0.3", features = ["serde", "parsing", "formatting"] }
+time = { version = "0.3", features = ["serde", "parsing", "formatting", "macros"] }
 yaml_serde = "0.10.4"

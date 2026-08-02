@@ -27,7 +27,7 @@ pub enum Schedule {
 impl Schedule {
     pub fn occurrences(&self) -> Occurrences<'_> {
         match self {
-            Schedule::Manual { date_list } => Occurrences::Manual(date_list.iter()),
+            Schedule::Manual { date_list } => Occurrences::Manual(date_list.iter().enumerate()),
             Schedule::Repeating { repeats } => {
                 Occurrences::Repeating(RepeatOccurrences::new(repeats))
             }
