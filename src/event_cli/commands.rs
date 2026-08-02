@@ -62,11 +62,22 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
 
         let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
 
+        let time_disp = match (item.from, item.to) {
+            (from, Some(to)) if from.date() == to.date() => {
+                format!(
+                    "{} - {}",
+                    apply_date_format(from, fmt_short_time),
+                    apply_date_format(to, fmt_short_time)
+                )
+            }
+            (from, _) => apply_date_format(from, fmt_short_time),
+        };
+
         let row = Row::from(
             vec![
                 apply_date_format(item.from, fmt_weekday),
                 apply_date_format(item.from, fmt_date),
-                apply_date_format(item.from, fmt_short_time),
+                time_disp,
                 format!("{}", item.index),
                 format!("{}", count_str),
                 truncate(&item.event.title, 30),
