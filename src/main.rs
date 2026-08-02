@@ -15,9 +15,9 @@ fn main() -> Result<(), DatabaseError> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Calendar => show_weekly_calendar(&db),
+        Commands::Calendar{all} => show_weekly_calendar(&db, all),
         Commands::List { all: _ } => println!("list"),
-        Commands::Upcoming => list_upcoming(&db),
+        Commands::Upcoming{all} => list_upcoming(&db, all),
     }
 
     Ok(())

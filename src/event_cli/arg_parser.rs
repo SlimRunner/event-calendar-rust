@@ -8,8 +8,14 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Upcoming,
-    Calendar,
+    Upcoming {
+        #[arg(short, long, default_value = "false")]
+        all: bool,
+    },
+    Calendar {
+        #[arg(short, long, default_value = "false")]
+        all: bool,
+    },
     List {
         #[arg(short, long)]
         all: bool,

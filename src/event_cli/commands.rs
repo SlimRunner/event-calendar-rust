@@ -3,7 +3,7 @@ use time::formatting::Formattable;
 use time::macros::format_description;
 use time::{Duration, OffsetDateTime, UtcOffset};
 
-use crate::event_core::query::EventDatabase;
+use crate::event_core::query::{CalendarEvent, EventDatabase, LeanCalendarEvent};
 
 fn format_signed_duration(time: Duration) -> String {
     let total_seconds = time.whole_seconds().abs();
@@ -19,7 +19,7 @@ fn format_signed_duration(time: Duration) -> String {
     }
 }
 
-pub fn list_upcoming(db: &EventDatabase) {
+fn list_and_filter(db: &EventDatabase, filter: impl Fn(&&LeanCalendarEvent) -> bool) {
     let fmt_date = format_description!("[year]-[month]-[day] [weekday repr:short]");
 
     let offset = match UtcOffset::current_local_offset() {
@@ -31,7 +31,7 @@ pub fn list_upcoming(db: &EventDatabase) {
     let mut table = Table::new();
     table.set_header(Row::from(vec!["Title", "Countdown", "Start", "Total"]));
 
-    for item in db.list_all().iter().filter(|ev| ev.start_date > today) {
+    for item in db.list_all().iter().filter(filter) {
         let diff = format_signed_duration(item.start_date - today);
         let count = item.event.schedule.get_count();
         let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
@@ -56,6 +56,13 @@ pub fn list_upcoming(db: &EventDatabase) {
     println!("{}", table.to_string());
 }
 
+pub fn list_upcoming(db: &EventDatabase, show_all: bool) {
+    let today: OffsetDateTime = OffsetDateTime::now_utc();
+    list_and_filter(db, |ev| {
+        ev.start_date > today && show_all || ev.event.tags.contains(&"public".to_string())
+    });
+}
+
 fn apply_date_format<T: Formattable>(date: OffsetDateTime, format: T) -> String {
     return format!("{}", date.format(&format).unwrap_or(date.to_string()));
 }
@@ -68,7 +75,7 @@ fn truncate(s: &str, max: usize) -> String {
     s.chars().take(max - 3).collect::<String>() + "..."
 }
 
-pub fn show_weekly_calendar(db: &EventDatabase) {
+fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&CalendarEvent) -> bool) {
     let fmt_weekday = format_description!("[weekday]");
     let fmt_date = format_description!("[month repr:long] [day] [year]");
     let fmt_short_time = format_description!("[hour repr:12]:[minute] [period]");
@@ -86,7 +93,7 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
     let mut table = Table::new();
     table.set_header(Row::from(vec!["Day", "Date", "Time", "i", "N", "Title"]));
 
-    for item in cal {
+    for item in cal.iter().filter(filter) {
         let count = item.event.schedule.get_count();
 
         // the order of these checks matter
@@ -144,4 +151,11 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
     }
 
     println!("{}", table.to_string());
+}
+
+pub fn show_weekly_calendar(db: &EventDatabase, show_all: bool) {
+    show_weekly_calendar_and_filter(db, |ev| {
+        // if flag is false and public tag is not => filter out (true)
+        show_all || ev.event.tags.contains(&"public".to_string())
+    });
 }
