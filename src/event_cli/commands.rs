@@ -1,4 +1,5 @@
 use comfy_table::{self, Cell, CellAlignment, Color, Row, Table};
+use time::UtcOffset;
 use time::formatting::Formattable;
 use time::macros::format_description;
 use time::{Duration, OffsetDateTime};
@@ -29,8 +30,13 @@ fn truncate(s: &str, max: usize) -> String {
 pub fn show_weekly_calendar(db: &EventDatabase) {
     let fmt_weekday = format_description!("[weekday]");
     let fmt_date = format_description!("[month repr:long] [day] [year]");
-    let fmt_short_time = format_description!("[hour]:[minute]");
+    let fmt_short_time = format_description!("[hour repr:12]:[minute] [period]");
 
+    let offset = match UtcOffset::current_local_offset() {
+        Ok(offset) => offset,
+        Err(_) => UtcOffset::UTC,
+    };
+    println!("{}", offset);
     let today: OffsetDateTime = OffsetDateTime::now_utc();
     let week_window = Duration::new(3600 * 24 * 7, 0);
 
@@ -60,17 +66,17 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
             (from, Some(to)) if from.date() == to.date() => {
                 format!(
                     "{} - {}",
-                    apply_date_format(from, fmt_short_time),
-                    apply_date_format(to, fmt_short_time)
+                    apply_date_format(from.to_offset(offset), fmt_short_time),
+                    apply_date_format(to.to_offset(offset), fmt_short_time)
                 )
             }
-            (from, _) => apply_date_format(from, fmt_short_time),
+            (from, _) => apply_date_format(from.to_offset(offset), fmt_short_time),
         };
 
         let row = Row::from(
             vec![
-                apply_date_format(item.from, fmt_weekday),
-                apply_date_format(item.from, fmt_date),
+                apply_date_format(item.from.to_offset(offset), fmt_weekday),
+                apply_date_format(item.from.to_offset(offset), fmt_date),
                 time_disp,
                 format!("{}", item.index),
                 format!("{}", count_str),
