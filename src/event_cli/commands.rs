@@ -12,10 +12,20 @@ fn format_signed_duration(time: Duration) -> String {
     let minutes = (total_seconds % 3600) / 60;
     let seconds = total_seconds % 60;
 
-    match days {
-        0 => format!("{}:{}:{}", hours, minutes, seconds),
-        1 => format!("{} day, {}:{}:{}", days, hours, minutes, seconds),
-        _ => format!("{} days, {}:{}:{}", days, hours, minutes, seconds),
+    match (days, time.is_negative()) {
+        (0, false) => format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds),
+        (1, false) => format!(
+            "{} day, {:0>2}:{:0>2}:{:0>2}",
+            days, hours, minutes, seconds
+        ),
+        (_, true) => format!(
+            "-{} days, {:0>2}:{:0>2}:{:0>2}",
+            days, hours, minutes, seconds
+        ),
+        _ => format!(
+            "{} days, {:0>2}:{:0>2}:{:0>2}",
+            days, hours, minutes, seconds
+        ),
     }
 }
 
@@ -27,11 +37,14 @@ fn list_and_filter(db: &EventDatabase, filter: impl Fn(&&LeanCalendarEvent) -> b
         Err(_) => UtcOffset::UTC,
     };
 
+    let mut cal = db.list_all();
+    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+
     let today: OffsetDateTime = OffsetDateTime::now_utc();
     let mut table = Table::new();
     table.set_header(Row::from(vec!["Title", "Countdown", "Start", "Total"]));
 
-    for item in db.list_all().iter().filter(filter) {
+    for item in cal.iter().filter(filter) {
         let diff = format_signed_duration(item.start_date - today);
         let count = item.event.schedule.get_count();
         let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
