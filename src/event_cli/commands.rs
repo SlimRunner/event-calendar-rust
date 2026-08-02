@@ -74,8 +74,8 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
             .iter()
             .enumerate()
             .map(|(i, c)| match i {
-                3 | 4 => Cell::from(c).fg(bound_color),
-                0 | 1 => Cell::from(c).fg(today_color),
+                3 | 4 | 5 => Cell::from(c).fg(bound_color),
+                0 | 1 | 2 => Cell::from(c).fg(today_color),
                 _ => Cell::from(c),
             }),
         );
