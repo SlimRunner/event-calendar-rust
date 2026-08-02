@@ -1,6 +1,4 @@
-use std::fmt::Debug;
-
-use comfy_table::{self, Cell, CellAlignment, Color, ColumnConstraint, Row, Table};
+use comfy_table::{self, Cell, CellAlignment, Color, Row, Table};
 use time::formatting::Formattable;
 use time::macros::format_description;
 use time::{Duration, OffsetDateTime};
@@ -44,16 +42,6 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
     table.set_header(Row::from(vec!["Day", "Date", "Time", "i", "N", "Title"]));
 
     for item in &cal {
-        let text = format!(
-            "[{}/{}] {}: {}",
-            item.index,
-            item.event
-                .schedule
-                .get_count()
-                .map_or(String::from("?"), |n| format!("{}", n)),
-            item.event.title,
-            item.from.weekday()
-        );
         if today_flag && today < item.from {
             today_flag = false;
             println!("TODAY");
