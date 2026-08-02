@@ -2,7 +2,7 @@ mod event_cli;
 mod event_core;
 
 use clap::Parser;
-use event_cli::arg_parser::Cli;
+use event_cli::arg_parser::{Cli, Commands};
 use event_core::query::EventDatabase;
 
 use crate::{
@@ -17,9 +17,9 @@ fn main() -> Result<(), DatabaseError> {
     let cli = Cli::parse();
 
     match cli.command {
-        event_cli::arg_parser::Commands::Calendar => show_weekly_calendar(&db),
-        event_cli::arg_parser::Commands::List { all: _ } => println!("list"),
-        event_cli::arg_parser::Commands::Upcoming => list_upcoming(&db),
+        Commands::Calendar => show_weekly_calendar(&db),
+        Commands::List { all: _ } => println!("list"),
+        Commands::Upcoming => list_upcoming(&db),
     }
 
     Ok(())
