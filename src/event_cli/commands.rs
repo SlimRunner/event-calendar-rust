@@ -1,8 +1,7 @@
 use comfy_table::{self, Cell, CellAlignment, Color, Row, Table};
-use time::UtcOffset;
 use time::formatting::Formattable;
 use time::macros::format_description;
-use time::{Duration, OffsetDateTime};
+use time::{Duration, OffsetDateTime, UtcOffset};
 
 use crate::event_core::query::EventDatabase;
 
@@ -43,7 +42,6 @@ pub fn list_upcoming(db: &EventDatabase) {
             apply_date_format(item.start_date.to_offset(offset), fmt_date),
             count_str,
         ]);
-        // println!("{}", text);
     }
 
     table.load_preset(comfy_table::presets::UTF8_FULL);
@@ -79,7 +77,6 @@ pub fn show_weekly_calendar(db: &EventDatabase) {
         Ok(offset) => offset,
         Err(_) => UtcOffset::UTC,
     };
-    println!("{}", offset);
     let today: OffsetDateTime = OffsetDateTime::now_utc();
     let week_window = Duration::new(3600 * 24 * 7, 0);
 

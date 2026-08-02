@@ -2,8 +2,7 @@ use core::fmt;
 use std::num::NonZeroUsize;
 
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
-use time::serde::rfc3339;
+use time::{OffsetDateTime, serde::rfc3339};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct Exception {

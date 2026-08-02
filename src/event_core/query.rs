@@ -4,7 +4,7 @@ use std::{
 };
 use time::OffsetDateTime;
 
-use crate::event_core::{
+use super::{
     occurrence::duration_from_interval,
     parser::{Event, EventsFile, Schedule},
 };

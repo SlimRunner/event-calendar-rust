@@ -2,13 +2,11 @@ mod event_cli;
 mod event_core;
 
 use clap::Parser;
-use event_cli::arg_parser::{Cli, Commands};
-use event_core::query::EventDatabase;
-
-use crate::{
-    event_cli::commands::{list_upcoming, show_weekly_calendar},
-    event_core::query::DatabaseError,
+use event_cli::{
+    arg_parser::{Cli, Commands},
+    commands::{list_upcoming, show_weekly_calendar},
 };
+use event_core::query::{DatabaseError, EventDatabase};
 
 fn main() -> Result<(), DatabaseError> {
     let path = "E:/dev/personal-schedules/entertainment/seasonal-anime.yaml";

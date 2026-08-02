@@ -1,4 +1,7 @@
-use std::{collections::VecDeque, iter::{Enumerate, Peekable}};
+use std::{
+    collections::VecDeque,
+    iter::{Enumerate, Peekable},
+};
 
 use time::Duration;
 
@@ -99,7 +102,7 @@ impl<'a> Iterator for RepeatOccurrences<'a> {
             Some(t) => self.index < t,
             None => true,
         };
-        // println!("{}", self.index);
+
         if can_continue {
             let mut items: usize = 1;
             let date_interval: Duration = duration_from_interval(&self.repeat.interval);

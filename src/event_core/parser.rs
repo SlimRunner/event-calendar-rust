@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::occurrence::{Occurrences, RepeatOccurrences};
-use super::schedule_kinds::{Repeat, Rfc3339Date};
+use super::{
+    occurrence::{Occurrences, RepeatOccurrences},
+    schedule_kinds::{Repeat, Rfc3339Date},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EventsFile {
