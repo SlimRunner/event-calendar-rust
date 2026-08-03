@@ -253,7 +253,8 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
             (1, _) => Color::Cyan,
             _ => Color::White,
         };
-        let today_color = match today.date() == item.from.date() {
+        let today_color = match today.to_offset(offset).date() == item.from.to_offset(offset).date()
+        {
             true => Color::Green,
             false => Color::White,
         };
