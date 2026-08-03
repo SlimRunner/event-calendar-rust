@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use comfy_table::{self, Cell, CellAlignment, Color, Row, Table};
 use time::formatting::Formattable;
@@ -124,6 +124,52 @@ where
     println!("{}", table.to_string());
 }
 
+fn print_tag_tallies<'vec, 'db, I>(cal: I, max_comb: Option<usize>)
+where
+    'db: 'vec,
+    I: IntoIterator<Item = &'vec LeanCalendarEvent<'db>>,
+{
+    let mut tallies: HashMap<Vec<&String>, usize> = HashMap::new();
+    let mut table = Table::new();
+    table.set_header(Row::from(vec!["Tag", "Count"]));
+
+    for item in cal {
+        let tags = &item.event.tags;
+        let n = tags.len();
+
+        for mask in 0..(1usize << n) {
+            if let Some(max_size) = max_comb
+                && mask.count_ones() as usize > max_size
+            {
+                continue;
+            }
+            let mut subset = tags
+                .iter()
+                .enumerate()
+                .filter_map(|(i, tag)| ((mask >> i) & 1 == 1).then_some(tag))
+                .collect::<Vec<_>>();
+            subset.sort();
+            *tallies.entry(subset).or_insert(0) += 1;
+        }
+    }
+
+    let mut rows = tallies.iter().collect::<Vec<_>>();
+    rows.sort();
+
+    for (v, i) in rows {
+        table.add_row(vec![format!("{:?}", v), i.to_string()]);
+    }
+
+    table.load_preset(comfy_table::presets::UTF8_FULL);
+    table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
+    table
+        .column_mut(1)
+        .unwrap()
+        .set_cell_alignment(CellAlignment::Right);
+
+    println!("{}", table.to_string());
+}
+
 pub fn list_upcoming(db: &EventDatabase, show_all: bool) {
     let today: OffsetDateTime = OffsetDateTime::now_utc();
     let mut cal = db.list_all();
@@ -147,6 +193,25 @@ pub fn list_filtered_by_tags(db: &EventDatabase, any_list: &[String], strict_lis
     });
 
     print_list_w_tags(iter_cal, &strict_list);
+}
+
+pub fn tag_summary(
+    db: &EventDatabase,
+    any_list: &[String],
+    strict_list: &[String],
+    max_comb: Option<usize>,
+) {
+    let mut cal = db.list_all();
+    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+
+    let iter_cal = cal.iter().filter(|ev| {
+        let has_at_least =
+            any_list.is_empty() || ev.event.tags.iter().any(|tag| any_list.contains(tag));
+        let has_all = strict_list.iter().all(|tag| ev.event.tags.contains(tag));
+        has_at_least && has_all
+    });
+
+    print_tag_tallies(iter_cal, max_comb);
 }
 
 fn apply_date_format<T: Formattable>(date: OffsetDateTime, format: T) -> String {

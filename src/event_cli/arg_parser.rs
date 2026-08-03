@@ -22,4 +22,12 @@ pub enum Commands {
         #[arg(short = 'I', long)]
         include_all: Vec<String>,
     },
+    Tags {
+        #[arg(short = 'i', long)]
+        include_any: Vec<String>,
+        #[arg(short = 'I', long)]
+        include_all: Vec<String>,
+        #[arg(short, long)]
+        max_size: Option<usize>,
+    },
 }
