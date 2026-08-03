@@ -8,6 +8,8 @@ use event_cli::{
 };
 use event_core::query::{DatabaseError, EventDatabase};
 
+use crate::event_cli::commands::{list_all, list_filtered_by_tags};
+
 fn main() -> Result<(), DatabaseError> {
     let path = "E:/dev/personal-schedules/entertainment/seasonal-anime.yaml";
 
@@ -15,9 +17,13 @@ fn main() -> Result<(), DatabaseError> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Calendar{all} => show_weekly_calendar(&db, all),
-        Commands::List { all: _ } => println!("list"),
-        Commands::Upcoming{all} => list_upcoming(&db, all),
+        Commands::Calendar { all } => show_weekly_calendar(&db, all),
+        Commands::List { exclude, include } => match (exclude.is_empty(), include.is_empty()) {
+            (false, true) => list_filtered_by_tags(&db, &exclude, false),
+            (true, false) => list_filtered_by_tags(&db, &include, true),
+            _ => list_all(&db),
+        },
+        Commands::Upcoming { all } => list_upcoming(&db, all),
     }
 
     Ok(())

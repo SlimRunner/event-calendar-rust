@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use comfy_table::{self, Cell, CellAlignment, Color, Row, Table};
 use time::formatting::Formattable;
 use time::macros::format_description;
@@ -29,7 +31,11 @@ fn format_signed_duration(time: Duration) -> String {
     }
 }
 
-fn list_and_filter(db: &EventDatabase, filter: impl Fn(&&LeanCalendarEvent) -> bool) {
+fn print_upcoming_from_list<'vec, 'db, I>(cal: I)
+where
+    'db: 'vec,
+    I: IntoIterator<Item = &'vec LeanCalendarEvent<'db>>,
+{
     let fmt_date = format_description!("[year]-[month]-[day] [weekday repr:short]");
 
     let offset = match UtcOffset::current_local_offset() {
@@ -37,14 +43,11 @@ fn list_and_filter(db: &EventDatabase, filter: impl Fn(&&LeanCalendarEvent) -> b
         Err(_) => UtcOffset::UTC,
     };
 
-    let mut cal = db.list_all();
-    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
-
     let today: OffsetDateTime = OffsetDateTime::now_utc();
     let mut table = Table::new();
     table.set_header(Row::from(vec!["Title", "Countdown", "Start", "Total"]));
 
-    for item in cal.iter().filter(filter) {
+    for item in cal {
         let diff = format_signed_duration(item.start_date - today);
         let count = item.event.schedule.get_count();
         let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
@@ -69,11 +72,87 @@ fn list_and_filter(db: &EventDatabase, filter: impl Fn(&&LeanCalendarEvent) -> b
     println!("{}", table.to_string());
 }
 
+fn print_list_w_tags<'vec, 'db, I>(cal: I, tags: &Vec<String>)
+where
+    'db: 'vec,
+    I: IntoIterator<Item = &'vec LeanCalendarEvent<'db>>,
+{
+    let fmt_date = format_description!("[year]-[month]-[day] [weekday repr:short]");
+
+    let offset = match UtcOffset::current_local_offset() {
+        Ok(offset) => offset,
+        Err(_) => UtcOffset::UTC,
+    };
+
+    let mut table = Table::new();
+    table.set_header(Row::from(vec!["Title", "Start", "Total", "Tags"]));
+
+    for item in cal {
+        let count = item.event.schedule.get_count();
+        let count_str = count.map_or(String::from("?"), |n| format!("{}", n));
+
+        let mut item_tags = HashSet::new();
+        item.event.tags.iter().for_each(|s| {
+            item_tags.insert(s.to_string());
+        });
+        let mut filter_tags: HashSet<String> = HashSet::new();
+        tags.iter().for_each(|s| {
+            filter_tags.insert(s.to_string());
+        });
+        let tag_diff = &item_tags - &filter_tags;
+        let mut tag_cell = tag_diff.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+        tag_cell.sort();
+        let tag_cell = tag_cell.join(", ");
+
+        table.add_row(vec![
+            truncate(&item.event.title, 30),
+            apply_date_format(item.start_date.to_offset(offset), fmt_date),
+            count_str,
+            tag_cell,
+        ]);
+    }
+
+    table.load_preset(comfy_table::presets::UTF8_FULL);
+    table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
+    for i in vec![1, 2] {
+        table
+            .column_mut(i)
+            .unwrap()
+            .set_cell_alignment(CellAlignment::Right);
+    }
+
+    println!("{}", table.to_string());
+}
+
 pub fn list_upcoming(db: &EventDatabase, show_all: bool) {
     let today: OffsetDateTime = OffsetDateTime::now_utc();
-    list_and_filter(db, |ev| {
-        ev.start_date > today && show_all || ev.event.tags.contains(&"public".to_string())
+    let mut cal = db.list_all();
+    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+    let iter_cal = cal.iter().filter(|ev| {
+        ev.start_date > today && (show_all || ev.event.tags.contains(&"public".to_string()))
     });
+
+    print_upcoming_from_list(iter_cal);
+}
+
+pub fn list_all(db: &EventDatabase) {
+    let mut cal = db.list_all();
+    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+    let iter_cal = cal.iter().filter(|_| true);
+    let empty: Vec<String> = vec![];
+    print_list_w_tags(iter_cal, &empty);
+}
+
+pub fn list_filtered_by_tags(db: &EventDatabase, tag_list: &Vec<String>, is_whitelist: bool) {
+    let mut cal = db.list_all();
+    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
+
+    let iter_cal = cal.iter().filter(|ev| {
+        let has_tag = ev.event.tags.iter().any(|tag| tag_list.contains(tag));
+        if is_whitelist { has_tag } else { !has_tag }
+    });
+
+    print_list_w_tags(iter_cal, &tag_list);
 }
 
 fn apply_date_format<T: Formattable>(date: OffsetDateTime, format: T) -> String {
