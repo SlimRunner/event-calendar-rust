@@ -17,9 +17,9 @@ pub enum Commands {
         all: bool,
     },
     List {
-        #[arg(short, long, conflicts_with = "exclude")]
-        include: Vec<String>,
-        #[arg(short, long)]
-        exclude: Vec<String>,
+        #[arg(short = 'i', long)]
+        include_any: Vec<String>,
+        #[arg(short = 'I', long)]
+        include_all: Vec<String>,
     },
 }

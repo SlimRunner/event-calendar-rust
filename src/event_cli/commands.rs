@@ -72,7 +72,7 @@ where
     println!("{}", table.to_string());
 }
 
-fn print_list_w_tags<'vec, 'db, I>(cal: I, tags: &Vec<String>)
+fn print_list_w_tags<'vec, 'db, I>(cal: I, tags: &[String])
 where
     'db: 'vec,
     I: IntoIterator<Item = &'vec LeanCalendarEvent<'db>>,
@@ -135,24 +135,18 @@ pub fn list_upcoming(db: &EventDatabase, show_all: bool) {
     print_upcoming_from_list(iter_cal);
 }
 
-pub fn list_all(db: &EventDatabase) {
-    let mut cal = db.list_all();
-    cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
-    let iter_cal = cal.iter().filter(|_| true);
-    let empty: Vec<String> = vec![];
-    print_list_w_tags(iter_cal, &empty);
-}
-
-pub fn list_filtered_by_tags(db: &EventDatabase, tag_list: &Vec<String>, is_whitelist: bool) {
+pub fn list_filtered_by_tags(db: &EventDatabase, any_list: &[String], strict_list: &[String]) {
     let mut cal = db.list_all();
     cal.sort_by(|a, b| a.start_date.cmp(&b.start_date));
 
     let iter_cal = cal.iter().filter(|ev| {
-        let has_tag = ev.event.tags.iter().any(|tag| tag_list.contains(tag));
-        if is_whitelist { has_tag } else { !has_tag }
+        let has_at_least =
+            any_list.is_empty() || ev.event.tags.iter().any(|tag| any_list.contains(tag));
+        let has_all = strict_list.iter().all(|tag| ev.event.tags.contains(tag));
+        has_at_least && has_all
     });
 
-    print_list_w_tags(iter_cal, &tag_list);
+    print_list_w_tags(iter_cal, &strict_list);
 }
 
 fn apply_date_format<T: Formattable>(date: OffsetDateTime, format: T) -> String {
