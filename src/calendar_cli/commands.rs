@@ -5,7 +5,7 @@ use time::formatting::Formattable;
 use time::macros::format_description;
 use time::{Duration, OffsetDateTime, UtcOffset};
 
-use crate::event_core::query::{CalendarEvent, EventDatabase, LeanCalendarEvent};
+use crate::calendar_core::query::{CalendarEvent, EventDatabase, LeanCalendarEvent};
 
 fn format_signed_duration(time: Duration) -> String {
     let total_seconds = time.whole_seconds().abs();
