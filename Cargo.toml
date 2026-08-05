@@ -1,11 +1,13 @@
 [package]
-name = "event-calendar-rust"
+name = "clindar"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.6.5", features = ["derive", "wrap_help"] }
+clap = { version = "4.6.5", features = ["cargo", "derive", "wrap_help"] }
 comfy-table = "7.2.2"
+confy = "2.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.19"
 time = { version = "0.3", features = ["serde", "parsing", "formatting", "macros", "local-offset"] }
 yaml_serde = "0.10.4"

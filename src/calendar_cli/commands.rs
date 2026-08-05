@@ -178,6 +178,7 @@ pub fn list_upcoming(db: &EventDatabase, show_all: bool) {
         ev.start_date > today && (show_all || ev.event.tags.contains(&"public".to_string()))
     });
 
+    println!("{}", db.title);
     print_upcoming_from_list(iter_cal);
 }
 
@@ -192,6 +193,7 @@ pub fn list_filtered_by_tags(db: &EventDatabase, any_list: &[String], strict_lis
         has_at_least && has_all
     });
 
+    println!("{}", db.title);
     print_list_w_tags(iter_cal, &strict_list);
 }
 
@@ -211,6 +213,7 @@ pub fn tag_summary(
         has_at_least && has_all
     });
 
+    println!("{}", db.title);
     print_tag_tallies(iter_cal, max_comb);
 }
 
@@ -306,6 +309,7 @@ fn show_weekly_calendar_and_filter(db: &EventDatabase, filter: impl Fn(&&Calenda
 }
 
 pub fn show_weekly_calendar(db: &EventDatabase, show_all: bool) {
+    println!("{}", db.title);
     show_weekly_calendar_and_filter(db, |ev| {
         // if flag is false and public tag is not => filter out (true)
         show_all || ev.event.tags.contains(&"public".to_string())

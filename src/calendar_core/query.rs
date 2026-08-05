@@ -1,7 +1,9 @@
+use core::fmt;
 use std::{
     fs::{self},
     path::Path,
 };
+use thiserror::Error;
 use time::OffsetDateTime;
 
 use super::{
@@ -23,14 +25,24 @@ pub struct CalendarEvent<'a> {
 
 pub struct EventDatabase {
     data: EventsFile,
+    pub title: String,
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum DatabaseError {
     #[allow(dead_code)]
     Io(std::io::Error),
     #[allow(dead_code)]
     Parse(yaml_serde::Error),
+}
+
+impl fmt::Display for DatabaseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DatabaseError::Io(e) => write!(f, "{e}"),
+            DatabaseError::Parse(e) => write!(f, "{e}"),
+        }
+    }
 }
 
 impl From<std::io::Error> for DatabaseError {
@@ -46,10 +58,11 @@ impl From<yaml_serde::Error> for DatabaseError {
 }
 
 impl EventDatabase {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, DatabaseError> {
+    pub fn new(path: impl AsRef<Path>, title: &str) -> Result<Self, DatabaseError> {
         let yaml_str = fs::read_to_string(path)?;
         let data = yaml_serde::from_str::<EventsFile>(&yaml_str)?;
-        Ok(Self { data })
+        let title = title.to_string();
+        Ok(Self { data, title })
     }
 
     pub fn get_calendar(&self, from: OffsetDateTime, to: OffsetDateTime) -> Vec<CalendarEvent<'_>> {
